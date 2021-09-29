@@ -50,8 +50,18 @@ class S3Control(Control):
 
     """
 
-    def __init__(self, descriptor=None, endpoint_url=None):
+    def __init__(
+        self,
+        descriptor=None,
+        endpoint_url=None,
+        access_id=None,
+        secret_key=None,
+        acl=None,
+    ):
         self.setinitial("endpointUrl", endpoint_url)
+        self.setinitial("accessId", access_id)
+        self.setinitial("secretKey", secret_key)
+        self.setinitial("acl", acl)
         super().__init__(descriptor)
 
     @property
@@ -62,11 +72,26 @@ class S3Control(Control):
             or DEFAULT_ENDPOINT_URL
         )
 
+    @property
+    def access_id(self):
+        return os.environ.get(self.get("accessId")) if self.get("accessId") else None
+
+    @property
+    def secret_key(self):
+        return os.environ.get(self.get("secretKey")) if self.get("secretKey") else None
+
+    @property
+    def acl(self):
+        return self.get("acl")
+
     # Expand
 
     def expand(self):
         """Expand metadata"""
         self.setdefault("endpointUrl", self.endpoint_url)
+        self.setdefault("accessId", self.accessId)
+        self.setdefault("secretKey", self.secretKey)
+        self.setdefault("acl", self.acl)
 
     # Metadata
 
@@ -75,6 +100,20 @@ class S3Control(Control):
         "additionalProperties": False,
         "properties": {
             "endpointUrl": {"type": "string"},
+            "accessId": {"type": "string"},
+            "secretKey": {"type": "string"},
+            "acl": {
+                "type": "string",
+                "enum": [
+                    "private",
+                    "public-read",
+                    "public-read-write",
+                    "authenticated-read",
+                    "aws-exec-read",
+                    "bucket-owner-read",
+                    "bucket-owner-full-control",
+                ],
+            },
         },
     }
 
@@ -99,7 +138,15 @@ class S3Loader(Loader):
         boto3 = helpers.import_from_plugin("boto3", plugin="s3")
         control = self.resource.control
         parts = urlparse(self.resource.fullpath, allow_fragments=False)
-        client = boto3.resource("s3", endpoint_url=control.endpoint_url)
+        if control.access_id and control.secret_key:
+            client = boto3.resource(
+                "s3",
+                aws_access_key_id=control.access_id,
+                aws_secret_access_key=control.secret_key,
+                endpoint_url=control.endpoint_url,
+            )
+        else:
+            client = boto3.resource("s3", endpoint_url=control.endpoint_url)
         object = client.Object(bucket_name=parts.netloc, key=parts.path[1:])
         byte_stream = S3ByteStream(object)
         return byte_stream
@@ -110,9 +157,20 @@ class S3Loader(Loader):
         boto3 = helpers.import_from_plugin("boto3", plugin="s3")
         control = self.resource.control
         parts = urlparse(self.resource.fullpath, allow_fragments=False)
-        client = boto3.resource("s3", endpoint_url=control.endpoint_url)
+        if control.access_id and control.secret_key:
+            client = boto3.resource(
+                "s3",
+                aws_access_key_id=control.access_id,
+                aws_secret_access_key=control.secret_key,
+                endpoint_url=control.endpoint_url,
+            )
+        else:
+            client = boto3.resource("s3", endpoint_url=control.endpoint_url)
         object = client.Object(bucket_name=parts.netloc, key=parts.path[1:])
-        object.put(Body=byte_stream)
+        if control.acl:
+            object.put(Body=byte_stream, ACL=control.acl)
+        else:
+            object.put(Body=byte_stream)
 
 
 # Internal

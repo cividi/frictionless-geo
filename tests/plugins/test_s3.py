@@ -4,6 +4,7 @@ import string
 import random
 from moto import mock_s3
 from frictionless import Resource, validate, helpers
+from frictionless.plugins.s3 import S3Control
 
 
 IS_UNIX = not helpers.is_platform("windows")
@@ -120,6 +121,28 @@ def test_s3_loader_write(bucket_name):
     # Write
     with Resource("data/table.csv") as resource:
         resource.write(Resource("s3://%s/table.csv" % bucket_name))
+
+    # Read
+    with Resource("s3://%s/table.csv" % bucket_name) as resource:
+        assert resource.header == ["id", "name"]
+        assert resource.read_rows() == [
+            {"id": 1, "name": "english"},
+            {"id": 2, "name": "中国人"},
+        ]
+
+
+@mock_s3
+def test_s3_loader_write_acl(bucket_name):
+    client = boto3.resource("s3", region_name="us-east-1")
+    client.create_bucket(Bucket=bucket_name)
+
+    # Write
+    with Resource("data/table.csv") as resource:
+        resource.write(
+            Resource(
+                "s3://%s/table.csv" % bucket_name, control=S3Control(acl="public-read")
+            )
+        )
 
     # Read
     with Resource("s3://%s/table.csv" % bucket_name) as resource:
