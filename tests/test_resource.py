@@ -337,6 +337,36 @@ def test_resource_official_hash_bytes_rows_with_hashing_algorithm():
     }
 
 
+def test_resource_description_html():
+    resource = Resource(description="**test**")
+    assert resource.description == "**test**"
+    assert resource.description_html == "<p><strong>test</strong></p>"
+
+
+def test_resource_description_html_multiline():
+    resource = Resource(description="**test**\n\nline")
+    assert resource.description == "**test**\n\nline"
+    assert resource.description_html == "<p><strong>test</strong></p><p>line</p>"
+
+
+def test_resource_description_html_not_set():
+    resource = Resource()
+    assert resource.description == ""
+    assert resource.description_html == ""
+
+
+def test_resource_description_text():
+    resource = Resource(description="**test**\n\nline")
+    assert resource.description == "**test**\n\nline"
+    assert resource.description_text == "test line"
+
+
+def test_resource_description_text_plain():
+    resource = Resource(description="It's just a plain text. Another sentence")
+    assert resource.description == "It's just a plain text. Another sentence"
+    assert resource.description_text == "It's just a plain text. Another sentence"
+
+
 # Scheme
 
 

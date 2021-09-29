@@ -205,6 +205,30 @@ def test_package_standard_specs_properties(create_descriptor):
     assert package.created == "created"
 
 
+def test_package_description_html():
+    package = Package(description="**test**")
+    assert package.description == "**test**"
+    assert package.description_html == "<p><strong>test</strong></p>"
+
+
+def test_package_description_html_multiline():
+    package = Package(description="**test**\n\nline")
+    assert package.description == "**test**\n\nline"
+    assert package.description_html == "<p><strong>test</strong></p><p>line</p>"
+
+
+def test_package_description_text():
+    package = Package(description="**test**\n\nline")
+    assert package.description == "**test**\n\nline"
+    assert package.description_text == "test line"
+
+
+def test_package_description_text_plain():
+    package = Package(description="It's just a plain text. Another sentence")
+    assert package.description == "It's just a plain text. Another sentence"
+    assert package.description_text == "It's just a plain text. Another sentence"
+
+
 # Resources
 
 

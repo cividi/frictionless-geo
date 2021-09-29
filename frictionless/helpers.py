@@ -4,6 +4,7 @@ import os
 import csv
 import json
 import glob
+import marko
 import atexit
 import shutil
 import zipfile
@@ -13,6 +14,7 @@ import platform
 import textwrap
 import stringcase
 from inspect import signature
+from html.parser import HTMLParser
 from importlib import import_module
 from contextlib import contextmanager
 from urllib.parse import urlparse, parse_qs
@@ -321,6 +323,28 @@ def parse_resource_hash(hash):
     if len(parts) == 1:
         return (settings.DEFAULT_HASHING, parts[0])
     return parts
+
+
+def md_to_html(md):
+    try:
+        html = marko.convert(md)
+        html = html.replace("\n", "")
+        return html
+    except Exception:
+        return ""
+
+
+def html_to_text(html):
+    class HTMLFilter(HTMLParser):
+        text = ""
+
+        def handle_data(self, data):
+            self.text += data
+            self.text += " "
+
+    parser = HTMLFilter()
+    parser.feed(html)
+    return parser.text.strip()
 
 
 # Measurements
